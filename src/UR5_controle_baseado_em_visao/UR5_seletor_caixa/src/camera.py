@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nó Python para leitura de dados da câmera
+Nó (node) em Python para ler dados da câmera
 """
 
 import sys, time
@@ -8,95 +8,111 @@ import numpy as np
 import cv2 as cv
 import roslib
 import rospy
-from sensor_msgs.msg import CompressedImage  # Mensagens do ROS
+from sensor_msgs.msg import CompressedImage  # Mensagens ROS
 
 print(('versão do opencv: ', cv.__version__))
 
-class LeitorDeImagem:
+class image_read:
     def __init__(self):
-        # Define o tópico de inscrição
+        # Define o tópico do subscriber (assinante)
         self.subscriber = rospy.Subscriber(("/myur5/camera1/image_raw/compressed"), 
                                            CompressedImage, self.callback, queue_size=1)
 
     def callback(self, ros_data):
-        global coordenadas, n_azul, n_verde, n_vermelho
-        coordenadas = []
-
-        def desenhar(mascara, cor):
+        global coordenates, n_b, n_g, n_r
+        coordenates = []
+        def dibujar(mask, color):
             n = 0
             coord = []
-            contornos, hierarquia = cv.findContours(mascara, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+            # Encontra os contornos na máscara de cor
+            contours, hiterachy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
-            for c in contornos:
+            for c in contours:
                 area = cv.contourArea(c)
+                # Filtra contornos pequenos para remover ruído
                 if area > 100:
                     n = n + 1
                     m = cv.moments(c)
                     if m["m00"] == 0:
                         m["m00"] = 1
+                    # Calcula o centroide (centro) do contorno
                     x = int(m["m10"] / m["m00"])
                     y = int(m["m01"] / m["m00"])
-                    cv.circle(frame, (x, y), 3, cor, -1)
-                    fonte = cv.FONT_HERSHEY_SIMPLEX
-                    cv.putText(frame, "(" + str(x) + ", " + str(y) + ")", (x + 28, y), fonte, 0.5, cor, 1, cv.LINE_AA)
-                    casco_convexo = cv.convexHull(c)
-                    cv.drawContours(frame, [casco_convexo], 0, cor, 3)
+                    # Desenha um círculo no centroide
+                    cv.circle(frame, (x, y), 3, color, -1)
+                    font = cv.FONT_HERSHEY_SIMPLEX
+                    # Escreve as coordenadas na imagem
+                    cv.putText(frame, "(" + str(x) + ", " + str(y) + ")", (x + 28, y), font, 0.5, color, 1, cv.LINE_AA)
+                    # Desenha o contorno do objeto
+                    convexhull = cv.convexHull(c)
+                    cv.drawContours(frame, [convexhull], 0, color, 3)
+                    # Adiciona as coordenadas à lista
                     coord.append(x)
                     coord.append(y)
             return n, coord
 
+
         """Aqui as imagens são lidas e processadas"""
-        # VERMELHO
-        vermelhoBaixo1 = np.array([0, 100, 20], np.uint8)
-        vermelhoAlto1 = np.array([8, 255, 255], np.uint8)
-        vermelhoBaixo2 = np.array([175, 100, 20], np.uint8)
-        vermelhoAlto2 = np.array([179, 255, 255], np.uint8)
+        # --- Limites de Cor no Espaço HSV ---
+        
+        # VERMELHO (dividido em duas faixas para cobrir a transição do matiz)
+        redBajo1 = np.array([0, 100, 20], np.uint8)
+        redAlto1 = np.array([8, 255, 255], np.uint8)
+        redBajo2 = np.array([175, 100, 20], np.uint8)
+        redAlto2 = np.array([179, 255, 255], np.uint8)
 
         # AZUL
-        azulBaixo = np.array([100, 100, 20], np.uint8)
-        azulAlto = np.array([125, 255, 255], np.uint8)
+        blueBajo = np.array([100, 100, 20], np.uint8)
+        blueAlto = np.array([125, 255, 255], np.uint8)
 
         # VERDE
-        verdeBaixo = np.array([45, 100, 20], np.uint8)
-        verdeAlto = np.array([95, 255, 255], np.uint8)
+        greenBajo = np.array([45, 100, 20], np.uint8)
+        greenAlto = np.array([95, 255, 255], np.uint8)
 
+        # Decodifica os dados da imagem ROS para um formato que o OpenCV entende
         np_arr = np.frombuffer(ros_data.data, np.uint8)
         frame = cv.imdecode(np_arr, cv.IMREAD_COLOR)
 
+        # Converte a imagem de BGR para HSV para facilitar a detecção de cor
         hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-        mascaraVermelho1 = cv.inRange(hsv, vermelhoBaixo1, vermelhoAlto1)
-        mascaraVermelho2 = cv.inRange(hsv, vermelhoBaixo2, vermelhoAlto2)
-        mascaraVermelho = cv.bitwise_or(mascaraVermelho1, mascaraVermelho2)
-        mascaraAzul = cv.inRange(hsv, azulBaixo, azulAlto)
-        mascaraVerde = cv.inRange(hsv, verdeBaixo, verdeAlto)
+        
+        # Cria as máscaras para cada cor
+        maskRed1 = cv.inRange(hsv, redBajo1, redAlto1)
+        maskRed2 = cv.inRange(hsv, redBajo2, redAlto2)
+        maskRed = cv.bitwise_or(maskRed1, maskRed2) # Combina as duas máscaras de vermelho
+        maskBlue = cv.inRange(hsv, blueBajo, blueAlto)
+        maskGreen = cv.inRange(hsv, greenBajo, greenAlto)
 
-        pecas_azuis = []
-        pecas_verdes = []  # Vetores que armazenam a posição em pixels de cada uma das peças
-        pecas_vermelhas = []
+        piec_blue = []
+        piec_green = []  # Vetores que armazenam a posição em pixels de cada uma das peças
+        piec_red = []
 
-        n_azul, pecas_azuis = desenhar(mascaraAzul, (255, 0, 0))
-        coordenadas.append(pecas_azuis)
-        n_verde, pecas_verdes = desenhar(mascaraVerde, (0, 255, 0))
-        coordenadas.append(pecas_verdes)
-        n_vermelho, pecas_vermelhas = desenhar(mascaraVermelho, (0, 0, 255))
-        coordenadas.append(pecas_vermelhas)
+        # Processa cada máscara para encontrar e desenhar os objetos
+        n_b, piec_blue = dibujar(maskBlue, (255, 0, 0)) # Cor BGR para azul
+        coordenates.append(piec_blue)
+        n_g, piec_green = dibujar(maskGreen, (0, 255, 0)) # Cor BGR para verde
+        coordenates.append(piec_green)
+        n_r, piec_red = dibujar(maskRed, (0, 0, 255)) # Cor BGR para vermelho
+        coordenates.append(piec_red)
 
+        # Mostra a imagem processada em uma janela
         cv.imshow('frame', frame)
         cv.waitKey(2)
     
-    def revisar_coordenadas(self):
-        global coordenadas, n_azul, n_verde, n_vermelho
-        return n_azul, n_verde, n_vermelho, coordenadas
+    def rev_coord(self):
+        """Retorna as contagens de objetos e suas coordenadas."""
+        global coordenates, n_b, n_g, n_r
+        return n_b, n_g, n_r, coordenates
         
     
 def main(args):
-    """Inicializa e finaliza o nó ROS"""
-    ic = LeitorDeImagem()
-    rospy.init_node('leitor_de_imagem', anonymous=True)
+    """Inicializa e encerra o nó (node) do ROS"""
+    ic = image_read()
+    rospy.init_node('image_read', anonymous=True)
     try:
         rospy.spin()
     except KeyboardInterrupt:
-        print('Encerrando o nó ROS Leitor de Imagem')
+        print('Encerrando o nó de leitura de imagem do ROS')
         cv.destroyAllWindows()
 
 if __name__ == '__main__':
