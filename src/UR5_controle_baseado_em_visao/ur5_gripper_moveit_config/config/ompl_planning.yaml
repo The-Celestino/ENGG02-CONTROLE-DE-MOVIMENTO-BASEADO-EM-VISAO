@@ -1,0 +1,201 @@
+# Este arquivo configura os diferentes algoritmos de planejamento de movimento (planners)
+# disponíveis na Open Motion Planning Library (OMPL), que é usada pelo MoveIt.
+# Cada planejador tem um conjunto de parâmetros que podem ser ajustados para otimizar
+# o desempenho em tarefas específicas.
+
+planner_configs:
+  # --- Single-Query, Tree-Based Planners ---
+  # Planners baseados em amostragem que constroem uma árvore para encontrar um caminho.
+
+  SBL:
+    type: geometric::SBL  # Tipo/classe do planejador na biblioteca OMPL.
+    range: 0.0            # Distância máxima de cada novo movimento adicionado à árvore. Se 0.0, o valor é definido automaticamente.
+  EST:
+    type: geometric::EST
+    range: 0.0            # Distância máxima de cada novo movimento. Se 0.0, definido automaticamente.
+    goal_bias: 0.05       # Probabilidade (de 0 a 1) de tentar se conectar diretamente ao alvo, em vez de explorar.
+  LBKPIECE:
+    type: geometric::LBKPIECE
+    range: 0.0            # Distância máxima de cada novo movimento. Se 0.0, definido automaticamente.
+    border_fraction: 0.9  # Fração do tempo que o planejador foca em explorar as bordas do espaço de busca.
+    min_valid_path_fraction: 0.5 # Fração mínima de um caminho que precisa ser válida para que um movimento parcial seja aceito.
+  BKPIECE:
+    type: geometric::BKPIECE
+    range: 0.0
+    border_fraction: 0.9
+    failed_expansion_score_factor: 0.5 # Fator de penalidade na pontuação quando uma tentativa de expansão da árvore falha.
+    min_valid_path_fraction: 0.5
+  KPIECE:
+    type: geometric::KPIECE
+    range: 0.0
+    goal_bias: 0.05
+    border_fraction: 0.9
+    failed_expansion_score_factor: 0.5
+    min_valid_path_fraction: 0.5
+  RRT:
+    type: geometric::RRT  # Rapidly-exploring Random Trees
+    range: 0.0
+    goal_bias: 0.05
+  RRTConnect:
+    type: geometric::RRTConnect # Versão do RRT que cresce duas árvores (uma do início, outra do fim) e tenta conectá-las.
+    range: 0.0
+  RRTstar:
+    type: geometric::RRTstar # Versão otimizada do RRT que busca encontrar o caminho de menor custo.
+    range: 0.0
+    goal_bias: 0.05
+    delay_collision_checking: 1 # [0 ou 1] Ativa a verificação tardia de colisão para otimizar o processo.
+  TRRT:
+    type: geometric::TRRT # Versão do RRT que leva em conta a "qualidade" ou "custo" do caminho.
+    range: 0.0
+    goal_bias: 0.05
+    max_states_failed: 10          # Número de falhas de expansão antes de aumentar a 'temperatura' (permitindo movimentos de maior custo).
+    temp_change_factor: 2.0        # Fator pelo qual a 'temperatura' é aumentada ou diminuída.
+    min_temperature: 10e-10        # Limite inferior para a mudança de 'temperatura'.
+    init_temperature: 10e-6        # Temperatura inicial.
+    frountier_threshold: 0.0       # Limiar de distância para um estado ser considerado "fronteira" (área nova).
+    frountierNodeRatio: 0.1        # Proporção de nós de fronteira para não-fronteira.
+    k_constant: 0.0                # Constante de normalização usada em expressões internas.
+
+  # --- Multi-Query, Roadmap-Based Planners ---
+  # Planners que constroem um "mapa" (roadmap) do espaço livre e o reutilizam para múltiplas consultas.
+
+  PRM:
+    type: geometric::PRM # Probabilistic Roadmap
+    max_nearest_neighbors: 10 # Número máximo de vizinhos mais próximos a serem considerados para cada amostra.
+  PRMstar:
+    type: geometric::PRMstar # Versão otimizada do PRM.
+
+  # --- Planners Otimizados ---
+
+  FMT:
+    type: geometric::FMT # Fast Marching Tree
+    num_samples: 1000       # Número de estados (amostras) que o planejador irá gerar.
+    radius_multiplier: 1.1  # Multiplicador para o raio de busca por vizinhos mais próximos.
+    nearest_k: 1            # Usar a estratégia de K vizinhos mais próximos.
+    cache_cc: 1             # [0 ou 1] Usar cache para a verificação de colisão.
+    heuristics: 0           # [0 ou 1] Ativar heurísticas de custo para o destino.
+    extended_fmt: 1         # [0 ou 1] Ativar o FMT* estendido, adicionando novas amostras se uma solução não for encontrada.
+  BFMT:
+    type: geometric::BFMT # Versão bidirecional do FMT.
+    num_samples: 1000
+    radius_multiplier: 1.0
+    nearest_k: 1
+    balanced: 0             # Se 1, expande as duas árvores a cada iteração. Se 0, expande a árvore com menor custo.
+    optimality: 1           # Se 1, termina quando o melhor caminho possível é encontrado. Se 0, termina no primeiro caminho viável.
+    heuristics: 1
+    cache_cc: 1
+    extended_fmt: 1
+  PDST:
+    type: geometric::PDST # Path-Directed Subdivision Tree
+  STRIDE:
+    type: geometric::STRIDE
+    range: 0.0
+    goal_bias: 0.05
+    use_projected_distance: 0    # Se 1, usa distâncias em uma projeção do estado, em vez do espaço de estados completo.
+    degree: 16                   # Grau desejado de um nó na árvore de acesso (GNAT).
+    max_degree: 18               # Grau máximo.
+    min_degree: 12               # Grau mínimo.
+    max_pts_per_leaf: 6          # Máximo de pontos por folha na árvore.
+    estimated_dimension: 0.0     # Dimensão estimada do espaço livre.
+    min_valid_path_fraction: 0.2
+  BiTRRT:
+    type: geometric::BiTRRT # Versão bidirecional do TRRT.
+    range: 0.0
+    temp_change_factor: 0.1
+    init_temperature: 100
+    frountier_threshold: 0.0
+    frountier_node_ratio: 0.1
+    cost_threshold: 1e300   # Limiar de custo. Movimentos com custo maior que este valor não serão expandidos.
+  LBTRRT:
+    type: geometric::LBTRRT
+    range: 0.0
+    goal_bias: 0.05
+    epsilon: 0.4 # Fator de aproximação da otimalidade.
+  BiEST:
+    type: geometric::BiEST # Versão bidirecional do EST.
+    range: 0.0
+  ProjEST:
+    type: geometric::ProjEST # Versão do EST que usa projeções.
+    range: 0.0
+    goal_bias: 0.05
+  LazyPRM:
+    type: geometric::LazyPRM # PRM que adia a verificação de colisão dos segmentos do caminho.
+    range: 0.0
+  LazyPRMstar:
+    type: geometric::LazyPRMstar
+  SPARS:
+    type: geometric::SPARS
+    stretch_factor: 3.0          # Fator de "esticamento" que define um limite superior na qualidade do caminho.
+    sparse_delta_fraction: 0.25  # Fração delta para a distância de conexão (visibilidade das amostras).
+    dense_delta_fraction: 0.001  # Fração delta para detecção de interface.
+    max_failures: 1000           # Limite máximo de falhas consecutivas.
+  SPARStwo:
+    type: geometric::SPARStwo
+    stretch_factor: 3.0
+    sparse_delta_fraction: 0.25
+    dense_delta_fraction: 0.001
+    max_failures: 5000
+
+# --- Configuração por Grupo de Planejamento ---
+# Aqui, aplicamos os planejadores definidos acima a grupos específicos de juntas do robô.
+
+ur5_arm:
+  # Planejador padrão para este grupo. "None" ou "" significa que o padrão global do MoveIt será usado.
+  default_planner_config: None
+  # Lista de planejadores (definidos acima) que estão disponíveis para este grupo.
+  planner_configs:
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo
+  # Define quais juntas são usadas para projetar o espaço de estados de alta dimensão em um espaço 2D, para visualização ou para certos planejadores.
+  projection_evaluator: joints(shoulder_pan_joint,shoulder_lift_joint)
+  # Define a resolução da verificação de colisão. Um valor menor significa que os caminhos são verificados
+  # em segmentos menores e mais numerosos, aumentando a precisão e o custo computacional. (0.05 = 5%)
+  longest_valid_segment_fraction: 0.005
+
+gripper:
+  default_planner_config: ""
+  planner_configs:
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo

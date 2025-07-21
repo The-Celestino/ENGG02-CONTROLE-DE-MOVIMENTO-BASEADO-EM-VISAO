@@ -1,0 +1,128 @@
+# Configurações para usar os controladores de simulação do MoveIt (moveit_sim_controllers).
+# Isso permite que o MoveIt controle um robô simulado sem precisar de um hardware real.
+moveit_sim_hw_interface:
+  # Define o grupo de juntas do MoveIt que será controlado por esta interface de simulação.
+  joint_model_group: ur5_arm
+  # Define a pose inicial (nomeada no arquivo SRDF) para o grupo de juntas ao iniciar.
+  joint_model_group_pose: home
+
+# ----------------------------------------------------------------------------------------------------
+
+# Configurações para o loop de controle principal do ros_control_boilerplate.
+# Este é o "coração" que executa a leitura e escrita nos atuadores (simulados ou reais).
+generic_hw_control_loop:
+  # Frequência (em Hz) com que o loop de controle principal é executado.
+  loop_hz: 300
+  # Limite de erro de tempo do ciclo. Se o tempo real do ciclo desviar mais do que este valor, um aviso será gerado.
+  cycle_time_error_threshold: 0.01
+
+# ----------------------------------------------------------------------------------------------------
+
+# Configurações para a interface de hardware do ros_control.
+# Descreve as juntas e como elas devem ser controladas na simulação.
+hardware_interface:
+  # Lista de todas as juntas que esta interface de hardware irá gerenciar.
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+    - robotiq_85_left_knuckle_joint
+  # Define o modo de controle para a simulação.
+  # 0: Controle por Posição (envia ângulos de junta desejados).
+  # 1: Controle por Velocidade (envia velocidades de junta desejadas).
+  sim_control_mode: 1
+
+# ----------------------------------------------------------------------------------------------------
+
+# Controlador responsável por publicar o estado de todas as juntas.
+# Ele cria o tópico /joint_states, que é essencial para muitos nós do ROS, como o robot_state_publisher e o RViz.
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50 # Frequência (em Hz) de publicação do estado das juntas.
+
+# ----------------------------------------------------------------------------------------------------
+
+# Lista de controladores que serão carregados pelo controller_manager do ros_control.
+# Esta é uma "lista mestre" que define quais controladores estarão disponíveis.
+controller_list:
+  - name: ur5_arm_controller # Nome do controlador para o braço do robô.
+    action_ns: follow_joint_trajectory # Namespace da action para seguir trajetórias.
+    default: True # Define este como o controlador padrão para as juntas que ele gerencia.
+    type: FollowJointTrajectory # Tipo da action que este controlador implementa.
+    joints: # Juntas controladas por esta instância do controlador.
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+  - name: gripper_controller # Nome do controlador para a garra.
+    action_ns: follow_joint_trajectory
+    default: True
+    type: FollowJointTrajectory
+    joints:
+      - robotiq_85_left_knuckle_joint
+
+# ----------------------------------------------------------------------------------------------------
+
+# Configuração detalhada do controlador do braço UR5.
+ur5_arm_controller:
+  # Tipo específico do controlador. effort_controllers envia comandos de torque/força para as juntas.
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  # Ganhos do controlador PID (Proporcional-Integral-Derivativo) para cada junta.
+  # Estes valores são cruciais para a estabilidade e desempenho do controle.
+  gains:
+    shoulder_pan_joint:
+      p: 1000   # Ganho Proporcional (força de correção baseada no erro atual).
+      d: 50     # Ganho Derivativo (amortecimento, atua na velocidade do erro).
+      i: 10     # Ganho Integral (corrige erros residuais acumulados ao longo do tempo).
+      i_clamp: 100 # Limite máximo para o termo integral (evita "integral wind-up").
+    shoulder_lift_joint:
+      p: 5000
+      d: 30
+      i: 100
+      i_clamp: 400
+    elbow_joint:
+      p: 5000
+      d: 50
+      i: 10
+      i_clamp: 100
+    wrist_1_joint:
+      p: 200
+      d: 20
+      i: 10
+      i_clamp: 100
+    wrist_2_joint:
+      p: 100
+      d: 10
+      i: 0.1
+      i_clamp: 100
+    wrist_3_joint:
+      p: 10
+      d: 1
+      i: 0.1
+      i_clamp: 100
+
+# ----------------------------------------------------------------------------------------------------
+
+# Configuração detalhada do controlador da garra.
+gripper_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - robotiq_85_left_knuckle_joint
+  gains:
+    robotiq_85_left_knuckle_joint:
+      p: 10
+      d: 0
+      i: 0
+      i_clamp: 1
