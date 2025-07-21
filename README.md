@@ -10,8 +10,9 @@
 </p>
 
 <div align="center">
-  <img src="https://media.giphy.com/media/UTq4Jp3qBuZKo/giphy.gif" width="500"/>
+  <img src="https://github.com/The-Celestino/ENGG02-CONTROLE-DE-MOVIMENTO-BASEADO-EM-VISAO/blob/main/src/UR5_controle_baseado_em_visao/UR5_seletor_caixa/assets/gifs/video_simula%C3%A7%C3%A3o_5_box.gif?raw=true" width="500"/>
 </div>
+
 
 ---
 
