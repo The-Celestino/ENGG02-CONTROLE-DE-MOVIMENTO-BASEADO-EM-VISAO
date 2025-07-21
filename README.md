@@ -123,7 +123,7 @@ source ~/.bashrc
 
 ### ▶️ Executando a Simulação
 
-🖥️ **Terminal 1: Lançar o ambiente do Gazebo**
+🖥️ **Terminal 1: Lançar o ambiente do Gazebo e dar Play na Simulação**
 
 ```bash
 roslaunch ur5_gripper_moveit_config versao_final.launch
@@ -132,7 +132,7 @@ roslaunch ur5_gripper_moveit_config versao_final.launch
 🎯 **Terminal 2: Ativar scripts de visão e controle**
 
 ```bash
-roslaunch ur5_seletor_caixa ativar_tracking.launch
+rosrun ur5_seletor_caixa ativar_tracking.launch
 ```
 
 📦 O robô detectará automaticamente as caixas e realizará a manipulação conforme as posições detectadas pela câmera.
